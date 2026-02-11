@@ -54,4 +54,24 @@ class DeudaService {
       whereArgs: [id],
     );
   }
+
+  Future<void> eliminarDeudasPorPersona(int personaId) async {
+    final db = await dbService.database;
+
+    await db.delete(
+      'deudas',
+      where: 'persona_id = ?',
+      whereArgs: [personaId],
+    );
+  }
+
+  Future<void> eliminarDeuda(int deudaId) async {
+    final db = await dbService.database;
+
+    await db.delete(
+      'deudas',
+      where: 'id = ?',
+      whereArgs: [deudaId],
+    );
+  }
 }

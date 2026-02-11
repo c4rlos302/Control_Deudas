@@ -30,4 +30,25 @@ class PagoService {
       );
     }).toList();
   }
+
+  Future<void> eliminarPagosPorPersona(int personaId) async {
+    final db = await dbService.database;
+
+    await db.rawDelete('''
+      DELETE FROM pagos
+      WHERE deuda_id IN (
+        SELECT id FROM deudas WHERE persona_id = ?
+      )
+    ''', [personaId]);
+  }
+
+  Future<void> eliminarPagosPorDeuda(int deudaId) async {
+    final db = await dbService.database;
+
+    await db.delete(
+      'pagos',
+      where: 'deuda_id = ?',
+      whereArgs: [deudaId],
+    );
+  }
 }

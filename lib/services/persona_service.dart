@@ -15,4 +15,14 @@ class PersonaService {
 
     return maps.map((e) => Persona.fromMap(e)).toList();
   }
+
+  Future<void> eliminarPersona(int id) async {
+    final db = await dbService.database;
+    await db.delete(
+      'personas',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
 }

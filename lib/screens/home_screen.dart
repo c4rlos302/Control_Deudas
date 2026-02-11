@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/persona.dart';
 import 'deudas_screen.dart';
 import '../services/persona_service.dart';
+import '../services/deuda_service.dart';
+import '../services/pago_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,7 +13,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  
+  final deudaService = DeudaService();
+  final pagoService = PagoService();
   final personaService = PersonaService();
   List<Persona> personas = [];
   
@@ -27,9 +30,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void agregarPersona(String nombre, String telefono) async {
+    bool existe = personas.any(
+      (p) => p.nombre.toLowerCase() == nombre.toLowerCase(),
+    );
+
+    if (existe) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Ya existe una persona con ese nombre"),
+        ),
+      );
+      return;
+    }
+
     Persona nueva = Persona(nombre: nombre, telefono: telefono);
     await personaService.insertarPersona(nueva);
     cargarPersonas();
+  }
+
+  void mostrarEliminarDialog(Persona persona) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Eliminar Persona"),
+          content: Text(
+            "¿Seguro que deseas eliminar a ${persona.nombre}?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+              ),
+              onPressed: () async {
+                await pagoService.eliminarPagosPorPersona(persona.id!);
+                await deudaService.eliminarDeudasPorPersona(persona.id!);
+                await personaService.eliminarPersona(persona.id!);
+                cargarPersonas();
+                Navigator.pop(context);
+              },
+              child: const Text("Eliminar"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void mostrarFormulario() {
@@ -108,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   leading: const Icon(Icons.person),
                   title: Text(personas[index].nombre),
                   subtitle: Text(personas[index].telefono),
+
                   onTap: () {
                     Navigator.push(
                       context,
@@ -117,6 +167,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     );
+                  },
+
+                  onLongPress: () {
+                    mostrarEliminarDialog(personas[index]);
                   },
                 );
               },
