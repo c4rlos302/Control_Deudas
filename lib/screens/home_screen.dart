@@ -140,8 +140,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mis Deudas"),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text("Mis Deudas"),
+          Text(
+            "By Carlos Reynoso",
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,),
+          ),
+        ],
       ),
+    ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: mostrarFormulario,
         child: const Icon(Icons.add),
