@@ -20,17 +20,19 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3, // 👈 SUBIMOS VERSION
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
+  // ---------- CREACION INICIAL ----------
   Future _onCreate(Database db, int version) async {
+
     await db.execute('''
       CREATE TABLE personas(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        telefono TEXT
+        nombre TEXT NOT NULL
       )
     ''');
 
@@ -54,5 +56,35 @@ class DatabaseService {
         fecha TEXT
       )
     ''');
+  }
+
+  // ---------- MIGRACIONES ----------
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+
+    // v2 → agregar fecha a deudas y pagos
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE deudas ADD COLUMN fecha TEXT");
+      await db.execute("ALTER TABLE pagos ADD COLUMN fecha TEXT");
+    }
+
+    // v3 → eliminar telefono de personas (recrear tabla)
+    if (oldVersion < 3) {
+
+      await db.execute('''
+        CREATE TABLE personas_new(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL
+        )
+      ''');
+
+      await db.execute('''
+        INSERT INTO personas_new (id, nombre)
+        SELECT id, nombre FROM personas
+      ''');
+
+      await db.execute('DROP TABLE personas');
+
+      await db.execute('ALTER TABLE personas_new RENAME TO personas');
+    }
   }
 }

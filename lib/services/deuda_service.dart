@@ -4,11 +4,11 @@ import '../models/deuda.dart';
 class DeudaService {
   final dbService = DatabaseService();
 
-  Future<void> insertarDeuda(int personaId, Deuda deuda) async {
+  Future<void> insertarDeuda(Deuda deuda) async {
     final db = await dbService.database;
 
     int id = await db.insert('deudas', {
-      'persona_id': personaId,
+      'persona_id': deuda.personaId,
       'concepto': deuda.concepto,
       'monto': deuda.montoTotal,
       'saldo': deuda.saldo,
@@ -31,6 +31,7 @@ class DeudaService {
     return maps.map((e) {
       return Deuda(
         id: e['id'] as int,
+        personaId: e['persona_id'] as int,
         concepto: e['concepto'] as String,
         montoTotal: e['monto'] as double,
         fecha: DateTime.parse(e['fecha'] as String),

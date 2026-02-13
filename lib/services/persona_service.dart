@@ -25,4 +25,19 @@ class PersonaService {
     );
   }
 
+  Future<bool> personaDebe(int personaId) async {
+    final db = await dbService.database;
+
+    var result = await db.rawQuery('''
+      SELECT SUM(saldo) as total
+      FROM deudas
+      WHERE persona_id = ?
+    ''', [personaId]);
+
+    double total = result.first["total"] == null
+        ? 0
+        : result.first["total"] as double;
+
+    return total > 0;
+  }
 }

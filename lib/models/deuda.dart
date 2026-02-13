@@ -1,5 +1,6 @@
 class Deuda {
   int? id;
+  final int personaId;
   final String concepto;
   final double montoTotal;
   final DateTime fecha;
@@ -9,6 +10,7 @@ class Deuda {
 
   Deuda({
     this.id,
+    required this.personaId,
     required this.concepto,
     required this.montoTotal,
     required this.fecha,

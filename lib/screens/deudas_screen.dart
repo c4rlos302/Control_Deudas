@@ -35,15 +35,13 @@ class _DeudasScreenState extends State<DeudasScreen> {
 
   void agregarDeuda(String concepto, double monto) async {
     Deuda nueva = Deuda(
+      personaId: widget.persona.id!,
       concepto: concepto,
       montoTotal: monto,
       fecha: DateTime.now(),
     );
 
-    await deudaService.insertarDeuda(
-      widget.persona.id!,
-      nueva,
-    );
+    await deudaService.insertarDeuda(nueva);
 
     cargarDeudas();
   }
@@ -91,11 +89,12 @@ class _DeudasScreenState extends State<DeudasScreen> {
                 }
 
                 final pago = Pago(
+                  deudaId: deuda.id!,
                   monto: monto,
                   fecha: DateTime.now(),
                 );
 
-                await pagoService.insertarPago(deuda.id!, pago);
+                await pagoService.insertarPago(pago);
 
                 setState(() {
                   deuda.agregarPago(monto);
@@ -247,7 +246,6 @@ class _DeudasScreenState extends State<DeudasScreen> {
   Future<void> aplicarPagoGeneral(double monto) async {
     double restante = monto;
 
-    // Ordenar por fecha (más antiguas primero)
     deudas.sort((a, b) => a.fecha.compareTo(b.fecha));
 
     for (var deuda in deudas) {
@@ -259,11 +257,12 @@ class _DeudasScreenState extends State<DeudasScreen> {
           : restante;
 
       final pagoObj = Pago(
+        deudaId: deuda.id!,
         monto: pago,
         fecha: DateTime.now(),
       );
 
-      await pagoService.insertarPago(deuda.id!, pagoObj);
+      await pagoService.insertarPago(pagoObj);
 
       deuda.agregarPago(pago);
 
@@ -310,6 +309,50 @@ class _DeudasScreenState extends State<DeudasScreen> {
       },
     );
   }
+  void mostrarHistorialPagos(Deuda deuda) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Historial de pagos"),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: FutureBuilder<List<Pago>>(
+              future: pagoService.obtenerPagosPorDeuda(deuda.id!),
+              builder: (context, snapshot) {
+
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+
+                if (snapshot.data!.isEmpty) {
+                  return const Text("No hay pagos registrados");
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (_, i) {
+                    final pago = snapshot.data![i];
+
+                    return ListTile(
+                      leading: const Icon(Icons.attach_money),
+                      title: Text("\$${pago.monto}"),
+                      subtitle: Text(
+                        "${pago.fecha.day}/${pago.fecha.month}/${pago.fecha.year}",
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -323,7 +366,7 @@ class _DeudasScreenState extends State<DeudasScreen> {
           FloatingActionButton(
             heroTag: "pagoGeneral",
             backgroundColor: Colors.green,
-            onPressed: mostrarPagoGeneralDialog,
+            onPressed: calcularTotalDeuda() > 0 ? mostrarPagoGeneralDialog : null,
             child: const Icon(Icons.payments),
           ),
           const SizedBox(height: 10),
@@ -364,20 +407,27 @@ class _DeudasScreenState extends State<DeudasScreen> {
                           children: [
                             Text("Monto original: \$${deuda.montoTotal}"),
                             Text("Saldo: \$${deuda.saldo}"),
+                            Text(
+                              "Fecha: ${deuda.fecha.day}/${deuda.fecha.month}/${deuda.fecha.year}",
+                            ),
                           ],
                         ),
-                        trailing: Text(
-                          deuda.estado,
-                          style: TextStyle(
-                            color: deuda.estado == "PAGADA"
-                                ? Colors.green
-                                : deuda.estado == "PARCIAL"
-                                    ? Colors.orange
-                                    : Colors.red,
-                          ),
-                        ),
+                        trailing: IconButton(
+                          icon: Icon(deuda.saldo > 0 ? Icons.add : Icons.check),
+                          color: Color(deuda.saldo > 0 ? 0xFF2196F3 : 0xFF4CAF50),
+                          onPressed: () {
+                            if (deuda.saldo > 0) {
+                              mostrarPagoDialog(deuda);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Deuda ya pagada"), 
+                                               duration: Duration(seconds: 1)),
+                              );
+                            }
+                          },
+                        ) ,
                         onTap: () {
-                          mostrarPagoDialog(deuda);
+                          mostrarHistorialPagos(deuda);
                         },
                         onLongPress: () {
                           mostrarEliminarDeudaDialog(deuda);

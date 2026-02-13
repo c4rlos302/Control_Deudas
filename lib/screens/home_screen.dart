@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {});
   }
 
-  void agregarPersona(String nombre, String telefono) async {
+  void agregarPersona(String nombre) async {
     bool existe = personas.any(
       (p) => p.nombre.toLowerCase() == nombre.toLowerCase(),
     );
@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    Persona nueva = Persona(nombre: nombre, telefono: telefono);
+    Persona nueva = Persona(nombre: nombre);
     await personaService.insertarPersona(nueva);
     cargarPersonas();
   }
@@ -99,11 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 controller: nombreController,
                 decoration: const InputDecoration(labelText: "Nombre"),
               ),
-              TextField(
-                controller: telefonoController,
-                decoration: const InputDecoration(labelText: "Teléfono"),
-                keyboardType: TextInputType.phone,
-              ),
             ],
           ),
           actions: [
@@ -114,8 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: () {
                 String nombre = nombreController.text.trim();
-                String telefono = telefonoController.text.trim();
-
                 if (nombre.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -125,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return;
                 }
 
-                agregarPersona(nombre, telefono);
+                agregarPersona(nombre);
                 Navigator.pop(context);
               },
               child: const Text("Guardar"),
@@ -168,10 +161,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 return ListTile(
                   leading: const Icon(Icons.person),
                   title: Text(personas[index].nombre),
-                  subtitle: Text(personas[index].telefono),
+                  subtitle: FutureBuilder<bool>(
+                    future: personaService.personaDebe(personas[index].id!),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Text("");
 
-                  onTap: () {
-                    Navigator.push(
+                      return Text(
+                        snapshot.data! ? "DEBE" : "AL DÍA",
+                        style: TextStyle(
+                          color: snapshot.data! ? const Color(0xFFF44336) : const Color(0xFF4CAF50),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+
+                  onTap: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => DeudasScreen(
@@ -179,6 +185,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     );
+
+                    setState(() {});
                   },
 
                   onLongPress: () {

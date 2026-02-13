@@ -1,17 +1,12 @@
-import 'database_service.dart';
 import '../models/pago.dart';
+import 'database_service.dart';
 
 class PagoService {
   final dbService = DatabaseService();
 
-  Future<void> insertarPago(int deudaId, Pago pago) async {
+  Future<void> insertarPago(Pago pago) async {
     final db = await dbService.database;
-
-    await db.insert('pagos', {
-      'deuda_id': deudaId,
-      'monto': pago.monto,
-      'fecha': pago.fecha.toIso8601String(),
-    });
+    await db.insert('pagos', pago.toMap());
   }
 
   Future<List<Pago>> obtenerPagosPorDeuda(int deudaId) async {
@@ -21,14 +16,10 @@ class PagoService {
       'pagos',
       where: 'deuda_id = ?',
       whereArgs: [deudaId],
+      orderBy: 'fecha DESC',
     );
 
-    return maps.map((e) {
-      return Pago(
-        monto: e['monto'] as double,
-        fecha: DateTime.parse(e['fecha'] as String),
-      );
-    }).toList();
+    return maps.map((e) => Pago.fromMap(e)).toList();
   }
 
   Future<void> eliminarPagosPorPersona(int personaId) async {
